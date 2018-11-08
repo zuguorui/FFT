@@ -10,6 +10,7 @@ using namespace std;
 
 void getSinTable()
 {
+    
     ofstream out;
     out.open("./sin_table.txt", ios_base::out);
     initSinTable();
