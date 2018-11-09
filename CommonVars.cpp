@@ -22,6 +22,8 @@ void initSinTable()
     cout << SIN_TABLE << endl;
 }
 
+
+
 float SIN_TABLE[SIN_TABLE_LEN] = {
     0,
     0.00613588,
