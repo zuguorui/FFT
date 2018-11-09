@@ -132,15 +132,18 @@ void fft(float *in, int32_t size, float *out, int8_t flag)
 }
 /*
 in: signal will be splited
-outOdd: the odd part of in
-outEven: the even part of in
+outReal: the odd part of in, 
+outImag: the even part of in
 size: these three arrays must have the same length, and the length = 2 * size
 */
-void oddEvenSplite(float *in, float *outOdd, float *outEven, int32_t size){
-    outEven[0] = in[0];
-    outEven[1] = in[1];
-    outOdd[0] = 0;
-    outOdd[1] = 0;
+void oddEvenSplite(float *in, float *outReal, float *outImag, int32_t size)
+{
+    //for real signal, real part is even symmetry, and imag part is odd symmetry
+    outReal[0] = in[0];
+    outReal[1] = 0;
+    //for imag signal, real part is odd symmetry, and imag part is even symmetry
+    outImag[0] = 0;
+    outImag[1] = in[1];
     float r1, i1, r2, i2;
     for(int i = 1; i < size; i++)
     {
@@ -150,11 +153,11 @@ void oddEvenSplite(float *in, float *outOdd, float *outEven, int32_t size){
         r2 = in[2 * (size - i)];
         i2 = in[2 * (size - i) + 1];
 
-        outEven[2 * i] = (r1 + r2) / 2;
-        outEven[2 * i + 1] = (i1 + i2) / 2;
+        outReal[2 * i] = (r1 + r2) / 2;
+        outReal[2 * i + 1] = (i1 - i2) / 2;
 
-        outOdd[2 * i] = (r1 - r2) / 2;
-        outOdd[2 * i + 1] = (i1 - i2) / 2;
-        
+        outImag[2 * i] = (r1 - r2) / 2;
+        outImag[2 * i + 1] = (i1 + i2) / 2;
+
     }
 }
