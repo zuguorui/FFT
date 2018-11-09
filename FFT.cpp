@@ -155,5 +155,6 @@ void oddEvenSplite(float *in, float *outOdd, float *outEven, int32_t size){
 
         outOdd[2 * i] = (r1 - r2) / 2;
         outOdd[2 * i + 1] = (i1 - i2) / 2;
+        
     }
 }
