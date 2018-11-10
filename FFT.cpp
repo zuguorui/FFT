@@ -135,6 +135,19 @@ in: signal will be splited
 outReal: the odd part of in, 
 outImag: the even part of in
 size: these three arrays must have the same length, and the length = 2 * size
+
+This is a FFT future, a signal which only has real part through FFT, the real part of FFT result is even symmetry and the imag part is
+odd symmetry. A signal which only has imag part through FFT,  the real part of FFT result is odd symmetry and the imag part is even 
+symmetry.
+We can splite a signal to odd-symmetry part and even-symmetry part by follow way:
+Xo[n] = (X[n] - X[N-n]) / 2
+Xe[n] = (X[n] + X[N-n]) / 2
+Attention that FFT output is indexed [0, N-1], and it is periodic. It means when n = 0, X[N] = X[0].
+
+The outputs of this function are outReal and outImag.
+outReal: the FFT result of real part of the input signal. This equals you pass the real part as a real signal to FFT directly.
+outImag: the FFT result of imag part of the input signal, but it dose not equals pass the imag part as real signal. If you want
+treat this output as that, you must multiply a complex unit j to every element.
 */
 void oddEvenSplite(float *in, float *outReal, float *outImag, int32_t size)
 {
