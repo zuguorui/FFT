@@ -4,7 +4,7 @@
             "name": "gcc",
             "includePath": [
                 "${workspaceFolder}/**",
-                "C:/Program Files/mingw-w64/x86_64-7.1.0-posix-seh-rt_v5-rev2/mingw64/include"
+                "D:\\MinGW\\include"
             ],
             "defines": [
                 "_DEBUG",
@@ -20,7 +20,7 @@
                 "databaseFilename": ""
             },
 
-            "compilerPath": "C:/Program Files/mingw-w64/x86_64-7.1.0-posix-seh-rt_v5-rev2/mingw64/bin/x86_64-w64-mingw32-g++.exe",
+            "compilerPath": "D:/MinGW/bin/g++.exe",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "clang-x64"
