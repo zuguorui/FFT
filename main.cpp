@@ -49,7 +49,7 @@ void fftTest()
         ptr += 2;
     }
     fout << endl;
-    fft(data, fftSize, out, 1);
+    cfft(data, fftSize, out, 1);
     fout << "out: " << endl;
     ptr = 0;
     while (ptr < 2 * fftSize)
@@ -60,7 +60,7 @@ void fftTest()
         ptr += 2;
     }
     fout << endl;
-    fft(out, fftSize, ifftOut, -1);
+    cfft(out, fftSize, ifftOut, -1);
     fout << "ifft: " << endl;
     ptr = 0;
     while (ptr < 2 * fftSize)

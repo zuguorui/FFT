@@ -12,7 +12,11 @@ float *W = NULL;
 
 void fftInit(int32_t fftLen)
 {
-    W = (float *)calloc(fftLen * 2, sizeof(float));
+    if(W != NULL)
+    {
+        fftClean();
+    }
+    W = (float *)calloc(fftLen, sizeof(float));
 }
 
 void fftClean()
@@ -38,12 +42,104 @@ int32_t bitReverse(int32_t index, int32_t fftSize)
 }
 
 /*
+Compute W factories of FFT or IFFT
+N: FFT size
+flag: 1: compute W for FFT. -1: compute for IFFT
+*/
+void computeW(uint32_t N,  int8_t flag)
+{
+    uint32_t cosOffset = SIN_TABLE_LEN / 4;
+    uint32_t sinPos = 0, cosPos = 0;
+    //compute W factor, cause W[k + N/2] = -W[k], we only need to compute half of W.
+    for (int i = 0; i< N >> 1; i++)
+    {
+        sinPos = ((SIN_TABLE_LEN * i) / N) % SIN_TABLE_LEN;
+        cosPos = (sinPos + cosOffset) % SIN_TABLE_LEN;
+        W[2 * i] = SIN_TABLE[cosPos];
+        W[2 * i + 1] = -1 * flag * SIN_TABLE[sinPos]; //be careful at this, W of fft is cos() - jsin(). W of ifft is cos() + jsin()
+        // cout << "W[" << 2 * i << "] = " << W[2 * i] << endl;
+        // cout << "W[" << 2 * i + 1 << "] = " << W[2 * i + 1] << endl;
+    }
+}
+
+/*
+This is standard real FFT, and will be convert to a complex FFT.
+in: a real sequence in length = size
+size: FFT size, must be power of 2
+out: a float array presents a complex sequence in format: {real, imag, real, imag ....}. length = 2 * size
+
+*/
+void rfft(float *in, int32_t size, float *out)
+{
+    /*
+    According to the format of input and output of cfft, we don't need to do anything on input to convert a N point real FFT to a 
+    N/2 point complex FFT. Just make size = size / 2.
+    */
+    
+    int32_t cSize = size >> 1;
+    cfft(in, cSize, out, 1);
+    float *realOut = (float*)calloc(size, sizeof(float));
+    float *imagOut = (float*)calloc(size, sizeof(float));
+    oddEvenSplite(out, realOut, imagOut, cSize);
+
+    computeW(size, 1);
+    float aReal, aImag, bReal, bImag, wReal, wImag;
+
+    // at this step, we need to merge two domien outputs of real and imag part.
+    // Attention to the operate on imagOut. According to the outImag of oddEvenSplite(), we must convert it to normal real FFT result.
+    
+    for(int i = 0; i < cSize; i++)
+    {
+        aReal = realOut[2 * i];
+        aImag = realOut[2 * i + 1];
+
+        bReal = -imagOut[2 * i + 1];
+        bImag = imagOut[2 * i];
+
+        wReal = W[2 * cSize];
+        wImag = W[2 * cSize + 1];
+
+        out[2 * i] = aReal + bReal * wReal - bImag * wImag;
+        out[2 * i + 1] = aImag + bImag * wReal + bReal * wImag;
+
+        wReal = -wReal;
+        wImag = -wImag;
+
+        out[2 * (i + cSize)] = aReal + bReal * wReal - bImag * wImag;
+        out[2 * (i + cSize) + 1] = aImag + bImag * wReal + bReal * wImag;
+    }
+
+    free(imagOut);
+    free(realOut);
+}
+
+/*
+This is standard real IFFT, and will be convert to complex IFFT.
+in: a float array presents a complex sequence in format: {real, imag, real, imag....}, length = 2*size
+size: FFT size, must be power of 2
+out: a real sequence in length = size.
+
+In fact, this equals cfft. Because the frequence data is always complex. We just pick the real part of output of cfft.
+*/
+void irfft(float *in, int32_t size, float *out)
+{
+    float *tempOut = (float*)calloc(2 * size, sizeof(float));
+    cfft(in, size, out, -1);
+    for(int i = 0; i < size; i++)
+    {
+        out[i] = tempOut[2 * i];
+    }
+    free(tempOut);
+}
+
+/*
+This is standard complex FFT
 in: it presents a complex, {real, imag, real, imag....};
 size: count of complex numbers, it means in.length = 2 * size, and the same with out. size must be power of 2.
 out: it is the same with in.
 flag: 1 means fft, -1 means ifft.
 */
-void fft(float *in, int32_t size, float *out, int8_t flag)
+void cfft(float *in, int32_t size, float *out, int8_t flag)
 {
     //bit reverse
     int index;
@@ -70,22 +166,9 @@ void fft(float *in, int32_t size, float *out, int8_t flag)
     while(butterFlySize <= size)
     {
         cout << "butterFlySize = " << butterFlySize << endl;
-        //compute W factor
-        for(int i = 0; i < butterFlySize >> 1; i++)
-        {
-            sinPos = ((SIN_TABLE_LEN * i) / butterFlySize) % SIN_TABLE_LEN;
-            cosPos = (sinPos + cosOffset) % SIN_TABLE_LEN;
-            W[2 * i] = SIN_TABLE[cosPos];
-            W[2 * i + 1] = -1 * flag * SIN_TABLE[sinPos]; //be careful at this, W of fft is cos() - jsin(). W of ifft is cos() + jsin()
-            // cout << "W[" << 2 * i << "] = " << W[2 * i] << endl;
-            // cout << "W[" << 2 * i + 1 << "] = " << W[2 * i + 1] << endl;
-        }
+        computeW(butterFlySize, flag);
         int32_t halfWSize = butterFlySize >> 1;
-        // for(int i = butterFlySize >> 1; i < butterFlySize; i++)
-        // {
-        //     W[2 * i] = -W[2 * (i - halfWSize)];
-        //     W[2 * i + 1] = -W[2 * (i - halfWSize) + 1];
-        // }
+        
         
         
         for(int i = 0; i < size / butterFlySize; i++)
@@ -146,8 +229,11 @@ Attention that FFT output is indexed [0, N-1], and it is periodic. It means when
 
 The outputs of this function are outReal and outImag.
 outReal: the FFT result of real part of the input signal. This equals you pass the real part as a real signal to FFT directly.
-outImag: the FFT result of imag part of the input signal, but it dose not equals pass the imag part as real signal. If you want
-treat this output as that, you must multiply a complex unit j to every element.
+outImag: the FFT result of imag part of the input signal, but it dose not equals pass the imag part as real signal to FFT. If you want
+treat this output as that, you must multiply a complex unit j to every element. That means you need to exchange elements in outImag:
+temp = outImag[2 * n];
+outImag[2 * n] = -outImag[2 * n + 1];
+outImag[2 * n + 1] = temp;
 */
 void oddEvenSplite(float *in, float *outReal, float *outImag, int32_t size)
 {
