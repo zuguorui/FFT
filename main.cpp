@@ -17,17 +17,17 @@ using namespace std;
 void getSinTable()
 {
 
-    ofstream out;
-    out.open("./sin_table.txt", ios_base::out);
+    ofstream fout;
+    fout.open("./sin_table.txt", ios_base::out);
     initSinTable();
     cout << SIN_TABLE << endl;
     for (int i = 0; i < SIN_TABLE_LEN; i++)
     {
         //cout << SIN_TABLE[i] << ",";
-        printf("%f, ", SIN_TABLE[i]);
-        out << SIN_TABLE[i] << ",";
+        printf("%ff, ", SIN_TABLE[i]);
+        fout << SIN_TABLE[i] << "f,";
     }
-    out.close();
+    fout.close();
 }
 
 void getHammingWindow()
@@ -41,6 +41,21 @@ void getHammingWindow()
         cout << HAMMING_WINDOW[i] << ",";
 
         fout << HAMMING_WINDOW[i] << ",";
+    }
+    fout.close();
+}
+
+void getHanningWindow()
+{
+    ofstream fout;
+    fout.open("./hanning_window.txt", ios_base::out);
+    initHanningWindow();
+
+    for (int i = 0; i < WINDOW_SIZE; i++)
+    {
+        cout << HANNING_WINDOW[i] << ",";
+
+        fout << HANNING_WINDOW[i] << ",";
     }
     fout.close();
 }
@@ -208,6 +223,13 @@ void minMaxTest()
     cout << MAX(a, b);
 }
 
+void roundFloatTest()
+{
+    float a = 5.99999;
+    int b = (int)a;
+    cout << b;
+}
+
 
 
 int main()
@@ -215,9 +237,10 @@ int main()
     //minMaxTest();
     //getHammingWindow();
     //mmecpyTest();
-    //getSinTable();
-    cfftTest();
-    
+    getSinTable();
+    //cfftTest();
+    //getHanningWindow();
+    //roundFloatTest();
     cout << endl << "over" << endl;
     getchar();
 }
