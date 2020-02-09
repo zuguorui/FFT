@@ -3,28 +3,27 @@
 #include <stdio.h>
 #include <iostream>
 #include <math.h>
-#include "CommonVars.h"
 
+#include "SinTable.h"
 
 using namespace std;
-
 
 void fftInit(int32_t fftLen, FFT_instance *instance)
 {
     instance->fftSize = fftLen;
-    instance->array1 = (float*)calloc(fftLen * 2, sizeof(float));
-    instance->array2 = (float*)calloc(fftLen * 2, sizeof(float));
-    instance->W = (float*)calloc(fftLen, sizeof(float));
+    instance->array1 = (float *)calloc(fftLen * 2, sizeof(float));
+    instance->array2 = (float *)calloc(fftLen * 2, sizeof(float));
+    instance->W = (float *)calloc(fftLen, sizeof(float));
 }
 
 void fftClean(FFT_instance *instance)
 {
-    if(instance == NULL)
+    if (instance == NULL)
     {
         return;
     }
     instance->fftSize = 0;
-    if(instance->array1 != NULL)
+    if (instance->array1 != NULL)
     {
         free(instance->array1);
         instance->array1 = NULL;
@@ -34,7 +33,7 @@ void fftClean(FFT_instance *instance)
         free(instance->array2);
         instance->array2 = NULL;
     }
-    if(instance->W != NULL)
+    if (instance->W != NULL)
     {
         free(instance->W);
         instance->W = NULL;
@@ -46,7 +45,7 @@ int32_t bitReverse(int32_t index, int32_t fftSize)
 {
     int32_t result = 0;
     int mPtr = 0;
-    while((fftSize >> mPtr) != 1)
+    while ((fftSize >> mPtr) != 1)
     {
         result = (result << 1) | ((index >> mPtr) & 0x01);
         mPtr++;
@@ -67,10 +66,14 @@ void computeW(uint32_t N, float *W, int8_t flag)
     //compute W factor, cause W[k + N/2] = -W[k], we only need to compute half of W.
     for (int i = 0; i < halfSize; i++)
     {
+        //This use SIN_TABLE directly has high compute speed.
         sinPos = ((SIN_TABLE_LEN * i) / N) % SIN_TABLE_LEN;
         cosPos = (sinPos + cosOffset) % SIN_TABLE_LEN;
         W[2 * i] = SIN_TABLE[cosPos];
         W[2 * i + 1] = -1 * flag * SIN_TABLE[sinPos]; //be careful at this, W of fft is cos() - jsin(). W of ifft is cos() + jsin()
+        //This use fast sin and cos function has high precision but low speed.
+        // W[2 * i] = fast_cos_radian(i * 2 * PI / N);
+        // W[2 * i + 1] = -1 * flag * fast_sin_radian(i * 2 * PI / N);
         // cout << "W[" << 2 * i << "] = " << W[2 * i] << endl;
         // cout << "W[" << 2 * i + 1 << "] = " << W[2 * i + 1] << endl;
     }
@@ -89,7 +92,7 @@ void rfft(float *in, int32_t size, FFT_instance *instance, float *out)
     According to the format of input and output of cfft, we don't need to do anything on input to convert a N point real FFT to a 
     N/2 point complex FFT. Just make size = size / 2.
     */
-    
+
     int32_t cSize = size >> 1;
     float *W = instance->W;
     float *realOut = instance->array1;
@@ -117,8 +120,8 @@ void rfft(float *in, int32_t size, FFT_instance *instance, float *out)
 
     // at this step, we need to merge two domien outputs of real and imag part.
     // Attention to the operate on imagOut. According to the outImag of oddEvenSplite(), we must convert it to normal real FFT result.
-    
-    for(int i = 0; i < cSize; i++)
+
+    for (int i = 0; i < cSize; i++)
     {
         aReal = realOut[2 * i];
         aImag = realOut[2 * i + 1];
@@ -138,13 +141,12 @@ void rfft(float *in, int32_t size, FFT_instance *instance, float *out)
         out[2 * (i + cSize)] = aReal + bReal * wReal - bImag * wImag;
         out[2 * (i + cSize) + 1] = aImag + bImag * wReal + bReal * wImag;
     }
-    cout << "out:" << endl;
-    for (int i = 0; i < size; i++)
-    {
-        cout << out[2 * i] << "+" << out[2 * i + 1] << "i, ";
-    }
-    cout << endl;
-
+    // cout << "out:" << endl;
+    // for (int i = 0; i < size; i++)
+    // {
+    //     cout << out[2 * i] << "+" << out[2 * i + 1] << "i, ";
+    // }
+    // cout << endl;
 }
 
 /*
@@ -153,7 +155,7 @@ in: a float array presents a complex sequence in format: {real, imag, real, imag
 size: FFT size, must be power of 2
 out: a real sequence in length = size.
 
-In fact, this equals cfft. Because the frequence data is always complex. We just pick the real part of output of cfft.
+In fact, this equals cfft cause the frequence data is always complex. We just pick the real part of output of cfft.
 */
 void irfft(float *in, int32_t size, FFT_instance *instance, float *out)
 {
@@ -165,7 +167,7 @@ void irfft(float *in, int32_t size, FFT_instance *instance, float *out)
     // }
     // cout << endl;
     cfft(in, size, instance, tempOut, -1);
-    for(int i = 0; i < size; i++)
+    for (int i = 0; i < size; i++)
     {
         out[i] = tempOut[2 * i];
     }
@@ -179,7 +181,7 @@ void irfft(float *in, int32_t size, FFT_instance *instance, float *out)
 
 /*
 This is standard complex FFT
-in: it presents a complex, {real, imag, real, imag....};
+in: it presents a complex array, {real, imag, real, imag....};
 size: count of complex numbers, it means in.length = 2 * size, and the same with out. size must be power of 2.
 out: it is the same with in.
 flag: 1 means fft, -1 means ifft.
@@ -198,7 +200,6 @@ void cfft(float *in, int32_t size, FFT_instance *instance, float *out, int8_t fl
         index = bitReverse(i, size);
         out[2 * i] = in[2 * index];
         out[2 * i + 1] = in[2 * index + 1];
-        
     }
 
     uint32_t butterFlySize = 2;
@@ -208,18 +209,16 @@ void cfft(float *in, int32_t size, FFT_instance *instance, float *out, int8_t fl
     uint32_t step = 0;
     float aReal, aImag, bReal, bImag, wReal, wImag;
 
-    while(butterFlySize <= size)
+    while (butterFlySize <= size)
     {
         //cout << "butterFlySize = " << butterFlySize << endl;
         computeW(butterFlySize, W, flag);
         int32_t halfWSize = butterFlySize >> 1;
-        
-        
-        
-        for(int i = 0; i < size / butterFlySize; i++)
+
+        for (int i = 0; i < size / butterFlySize; i++)
         {
             step = 0;
-            while(step < halfWSize)
+            while (step < halfWSize)
             {
                 index = i * butterFlySize + step;
                 aReal = out[2 * index];
@@ -235,7 +234,6 @@ void cfft(float *in, int32_t size, FFT_instance *instance, float *out, int8_t fl
                 out[2 * (index + halfWSize)] = aReal + bReal * wReal - bImag * wImag;
                 out[2 * (index + halfWSize) + 1] = aImag + bImag * wReal + bReal * wImag;
                 step++;
-                
             }
         }
 
@@ -246,17 +244,15 @@ void cfft(float *in, int32_t size, FFT_instance *instance, float *out, int8_t fl
         //     cout << out[i] << ", ";
         // }
         // cout << "]" << endl;
-
     }
     //ifft
-    if(flag == -1)
+    if (flag == -1)
     {
-        for(int i = 0; i < 2 * size; i++)
+        for (int i = 0; i < 2 * size; i++)
         {
             out[i] = out[i] / size;
         }
     }
-
 }
 /*
 in: signal will be splited
@@ -289,7 +285,7 @@ void oddEvenSplite(float *in, float *outReal, float *outImag, int32_t size)
     outImag[0] = 0;
     outImag[1] = in[1];
     float r1, i1, r2, i2;
-    for(int i = 1; i < size; i++)
+    for (int i = 1; i < size; i++)
     {
         r1 = in[2 * i];
         i1 = in[2 * i + 1];
@@ -302,6 +298,5 @@ void oddEvenSplite(float *in, float *outReal, float *outImag, int32_t size)
 
         outImag[2 * i] = (r1 - r2) / 2;
         outImag[2 * i + 1] = (i1 + i2) / 2;
-
     }
 }
